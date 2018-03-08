@@ -1,0 +1,60 @@
+{
+  "name": "download-webpack-plugin",
+  "version": "1.0.0",
+  "description": "A webpack plugin to load resource from internet instead of local file system to ensure the latest is compiled",
+  "files": [
+    "/index.js",
+    "/loader.js"
+  ],
+  "main": "index.js",
+  "scripts": {
+    "lint": "eslint index.js loader.js",
+    "unit": "nyc --reporter=lcov --reporter=text mocha test/unit",
+    "e2e": "mocha test/e2e/specs.test.js",
+    "temp": "mocha debug test/e2e/specs.test.js",
+    "test": "npm run lint &&npm run unit && npm run e2e",
+    "prepublishOnly": "npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/roneyrao/download-webpack-plugin"
+  },
+  "bugs": {
+    "url": "https://github.com/roneyrao/download-webpack-plugin"
+  },
+  "homepage": "https://github.com/roneyrao/download-webpack-plugin",
+  "keywords": [
+    "webpack",
+    "plugin",
+    "http",
+    "https",
+    "ftp",
+    "download"
+  ],
+  "author": "Roney",
+  "license": "MIT",
+  "dependencies": {
+    "cacheable-request": "git+https://github.com/roneyrao/cacheable-request.git",
+    "ftp": "^0.3.10",
+    "http-cache-semantics": "^3.8.1",
+    "keyv-fs": "file:../keyv-fs"
+  },
+  "devDependencies": {
+    "chai": "^4.1.2",
+    "deepcopy": "^0.6.3",
+    "eslint": "^4.18.1",
+    "eslint-config-airbnb-base": "^12.1.0",
+    "eslint-plugin-import": "^2.9.0",
+    "file-loader": "^1.1.11",
+    "flex-mock-server": "^2.2.2",
+    "fs-extra": "^5.0.0",
+    "ftp-srv": "^2.16.0",
+    "memory-fs": "^0.4.1",
+    "mocha": "^5.0.1",
+    "nyc": "^11.4.1",
+    "rewire": "^3.0.2",
+    "sinon": "^4.4.2",
+    "sinon-chai": "^2.14.0",
+    "webpack": "^3.11.0"
+  }
+}
