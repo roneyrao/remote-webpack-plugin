@@ -1,8 +1,8 @@
-var sinon = require('sinon');
-var chai = require('chai');
-var sinonChai = require('sinon-chai');
+import sinon from 'sinon';
+import chai from 'chai';
+import sinonChai from 'sinon-chai';
 
-before(function () {
+before(() => {
   chai.use(sinonChai);
 });
 

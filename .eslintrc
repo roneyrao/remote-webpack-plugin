@@ -2,6 +2,7 @@
   "env":{
     "node":true,
   }
+  ,"parser":"babel-eslint"
   ,"rules":{
     "no-plusplus": 0,
     "no-console": 0,
@@ -31,5 +32,5 @@
       "no-global-assign": "off"
     }
   }]
-  ,"extends":["airbnb-base/legacy"]
+  ,"extends":["airbnb-base"]
 }

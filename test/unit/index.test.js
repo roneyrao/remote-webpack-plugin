@@ -1,238 +1,228 @@
-var sinon = require('sinon');
-var expect = require('chai').expect;
-var copy = require('deepcopy');
-var rewire = require('rewire');
+import path from 'path';
+import sinon from 'sinon';
+import { expect } from 'chai';
+import copy from 'deepcopy';
 
-var mod = rewire('../../index');
+import DownloadWebpackPlugin, { __RewireAPI__ } from '../../src/';
 
-describe('index.js', function () {
-  describe('combineHttpAuth', function () {
-    var combineHttpAuth = mod.__get__('combineHttpAuth');
+describe('index.js', () => {
+  describe('combineHttpAuth', () => {
+    const combineHttpAuth = __RewireAPI__.__get__('combineHttpAuth');
 
     function check(map, map2) {
       combineHttpAuth(map);
       expect(map).eql(map2);
     }
 
-    it('no user and password', function () {
-      var map = {
+    it('no user and password', () => {
+      const map = {
         'abc.com': {
-          method: 'post'
-        }
+          method: 'post',
+        },
       };
-      var map2 = copy(map);
+      const map2 = copy(map);
 
       check(map, map2);
     });
 
-    it('only user', function () {
-      var map = {
-        'abc.com': {
-          method: 'post',
-          user: 'user'
-        }
-      };
-      var map2 = {
-        'abc.com': {
-          method: 'post',
-          auth: 'user'
-        }
-      };
-      check(map, map2);
-    });
-
-    it('user and password', function () {
-      var map = {
+    it('only user', () => {
+      const map = {
         'abc.com': {
           method: 'post',
           user: 'user',
-          password: 'password'
-        }
+        },
       };
-      var map2 = {
+      const map2 = {
         'abc.com': {
           method: 'post',
-          auth: 'user:password'
-        }
+          auth: 'user',
+        },
+      };
+      check(map, map2);
+    });
+
+    it('user and password', () => {
+      const map = {
+        'abc.com': {
+          method: 'post',
+          user: 'user',
+          password: 'password',
+        },
+      };
+      const map2 = {
+        'abc.com': {
+          method: 'post',
+          auth: 'user:password',
+        },
       };
       check(map, map2);
     });
   });
 
-  describe('checkProtocol', function () {
-    var checkProtocol = mod.__get__('checkProtocol');
+  describe('checkProtocol', () => {
+    const checkProtocol = __RewireAPI__.__get__('checkProtocol');
 
-    it('abdef', function () {
+    it('abdef', () => {
       expect(checkProtocol('abdef')).not.to.be.ok;
     });
 
-    it('http', function () {
+    it('http', () => {
       expect(checkProtocol('http://abc')).to.be.ok;
     });
 
-    it('https', function () {
+    it('https', () => {
       expect(checkProtocol('https://abc')).to.be.ok;
     });
 
-    it('ftp', function () {
+    it('ftp', () => {
       expect(checkProtocol('ftp://abc')).to.be.ok;
     });
 
-    it('ftps', function () {
+    it('ftps', () => {
       expect(checkProtocol('ftps://abc')).to.be.ok;
     });
   });
 
-  describe('DownloadWebpackPlugin', function () {
-    var DownloadWebpackPlugin = mod.__get__('DownloadWebpackPlugin');
-
-    it('no options', function () {
-      var restore = mod.__set__('combineHttpAuth', sinon.spy());
+  describe('DownloadWebpackPlugin', () => {
+    it('no options', () => {
+      __RewireAPI__.__set__('combineHttpAuth', sinon.spy());
       new DownloadWebpackPlugin(); // eslint-disable-line no-new
-      sinon.assert.notCalled(mod.__get__('combineHttpAuth'));
+      sinon.assert.notCalled(__RewireAPI__.__get__('combineHttpAuth'));
 
-      restore();
+      __RewireAPI__.__ResetDependency__();
     });
-    it('stores options', function () {
-      var restore = mod.__set__('combineHttpAuth', sinon.spy());
-      var options = {
-        http: {}
+    it('stores options', () => {
+      __RewireAPI__.__set__('combineHttpAuth', sinon.spy());
+      const options = {
+        http: {},
       };
-      var inst = new DownloadWebpackPlugin(options);
+      const inst = new DownloadWebpackPlugin(options);
       expect(inst.options).equal(options);
-      sinon.assert.calledWithExactly(mod.__get__('combineHttpAuth'), options.http);
+      sinon.assert.calledWithExactly(__RewireAPI__.__get__('combineHttpAuth'), options.http);
 
-      restore();
+      __RewireAPI__.__ResetDependency__();
     });
   });
 
-  describe('DownloadWebpackPlugin.prototype.apply', function () {
-    var options = {};
-    var callbackMap = {};
+  describe('DownloadWebpackPlugin.prototype.apply', () => {
+    const loaderPath = path.resolve('src/loader.js');
+    const options = {};
+    const callbackMap = {};
     function plugin(key, callback) {
       callbackMap[key] = callback;
     }
-    var compiler = { plugin: plugin };
-    var DownloadWebpackPlugin = mod.__get__('DownloadWebpackPlugin');
-    var inst = new DownloadWebpackPlugin(options);
+    const compiler = { plugin };
+    const inst = new DownloadWebpackPlugin(options);
     inst.apply(compiler);
 
-    describe('before-compile', function () {
-      var key;
-      var afterResolve;
+    describe('before-compile', () => {
+      let key;
+      let afterResolve;
       function plugin2(_key, _afterResolve) {
         key = _key;
         afterResolve = _afterResolve;
       }
-      var params = {
+      const params = {
         normalModuleFactory: {
-          plugin: plugin2
-        }
+          plugin: plugin2,
+        },
       };
-      var callback = sinon.spy();
+      const callback = sinon.spy();
       callbackMap['before-compile'](params, callback);
 
-      it('install plugin and exec callback', function () {
+      it('install plugin and exec callback', () => {
         expect(key).equal('after-resolve');
         expect(typeof afterResolve).equal('function');
         sinon.assert.calledOnce(callback);
       });
-      it('after-resolve executes correctly', function () {
-        var restore = mod.__set__('checkProtocol', sinon.spy());
-        var checkProtocol = mod.__get__('checkProtocol');
-        var data = { resource: {} };
-        var callback2 = sinon.spy();
+      it('after-resolve executes correctly', () => {
+        __RewireAPI__.__set__('checkProtocol', sinon.spy());
+        const checkProtocol = __RewireAPI__.__get__('checkProtocol');
+        const data = { resource: {} };
+        const callback2 = sinon.spy();
         afterResolve(data, callback2);
 
         sinon.assert.calledWithExactly(callback2, null, data);
         sinon.assert.calledWithExactly(checkProtocol, data.resource);
-        restore();
+        __RewireAPI__.__ResetDependency__();
       });
-      it('download, no otherLoader', function () {
-        var dirname = 'dirnameaaa';
-        var restore = mod.__set__({
-          checkProtocol: function () {
+      it('download, no otherLoader', () => {
+        __RewireAPI__.__set__({
+          checkProtocol() {
             return true;
           },
-          __dirname: dirname
         });
-        var resource = 'http://abc.com';
-        var loaderPath = dirname + '/loader.js';
-        var data = {
-          resource: resource,
+        const resource = 'http://abc.com';
+        const data = {
+          resource,
           request: resource,
-          loaders: [1, 2]
+          loaders: [1, 2],
         };
-        afterResolve(data, function () {});
+        afterResolve(data, () => {});
 
-        expect(data.loaders.pop()).eql({ loader: loaderPath, options: options });
-        expect(data.request).equal(loaderPath + '!' + resource);
-        restore();
+        expect(data.loaders.pop()).eql({ loader: loaderPath, options });
+        expect(data.request).equal(`${loaderPath}!${resource}`);
+        __RewireAPI__.__ResetDependency__();
       });
-      it('download, otherLoader exists', function () {
-        var dirname = 'dirnameaaa';
-        var restore = mod.__set__({
-          checkProtocol: function () {
+      it('download, otherLoader exists', () => {
+        __RewireAPI__.__set__({
+          checkProtocol() {
             return true;
           },
-          __dirname: dirname
         });
-        var otherLoader = 'afsaf.com!';
-        var resource = 'http://abc.com';
-        var loaderPath = dirname + '/loader.js';
-        var data = {
-          resource: resource,
+        const otherLoader = 'afsaf.com!';
+        const resource = 'http://abc.com';
+        const data = {
+          resource,
           request: otherLoader + resource,
-          loaders: []
+          loaders: [],
         };
-        afterResolve(data, function () {});
+        afterResolve(data, () => {});
 
-        expect(data.request).equal(otherLoader + loaderPath + '!' + resource);
-        restore();
+        expect(data.request).equal(`${otherLoader + loaderPath}!${resource}`);
+        __RewireAPI__.__ResetDependency__();
       });
     });
 
-    describe('after-resolvers', function () {
-      var key;
-      var parsedResolve;
+    describe('after-resolvers', () => {
+      let key;
+      let parsedResolve;
       function plugin3(_key, _parsedResolve) {
         key = _key;
         parsedResolve = _parsedResolve;
       }
-      var compilerInst = {
+      const compilerInst = {
         resolvers: {
           normal: {
-            plugin: plugin3
-          }
-        }
+            plugin: plugin3,
+          },
+        },
       };
-      var normalInst = {
-        doResolve: sinon.spy()
+      const normalInst = {
+        doResolve: sinon.spy(),
       };
       callbackMap['after-resolvers'].call(compilerInst);
 
-      it('install plugin', function () {
+      it('install plugin', () => {
         expect(key).equal('before-described-resolve');
         expect(typeof parsedResolve).equal('function');
       });
-      it('before-described-resolve executes correctly', function () {
-        var restore = mod.__set__('checkProtocol', sinon.spy());
-        var checkProtocol = mod.__get__('checkProtocol');
-        var request = { request: {} };
-        var callback3 = sinon.spy();
+      it('before-described-resolve executes correctly', () => {
+        __RewireAPI__.__set__('checkProtocol', sinon.spy());
+        const checkProtocol = __RewireAPI__.__get__('checkProtocol');
+        const request = { request: {} };
+        const callback3 = sinon.spy();
         parsedResolve.call(normalInst, request, callback3);
 
         sinon.assert.calledOnce(callback3);
         sinon.assert.calledWithExactly(checkProtocol, request.request);
-        restore();
+        __RewireAPI__.__ResetDependency__();
       });
-      it('parse download correctly', function () {
-        var restore = mod.__set__('checkProtocol', function () {
-          return true;
-        });
-        var requestPath = 'aaaaaaaaaaa';
-        var request = { request: requestPath };
-        var callback4 = function () {};
+      it('parse download correctly', () => {
+        __RewireAPI__.__set__('checkProtocol', () => true);
+        const requestPath = 'aaaaaaaaaaa';
+        const request = { request: requestPath };
+        const callback4 = function () {};
         parsedResolve.call(normalInst, request, callback4);
 
         expect(request).eql({ module: false, path: requestPath, request: undefined });
@@ -240,10 +230,10 @@ describe('index.js', function () {
           normalInst.doResolve,
           'resolved',
           request,
-          'download: url is resolved - ' + request.path,
-          callback4
+          `download: url is resolved - ${request.path}`,
+          callback4,
         );
-        restore();
+        __RewireAPI__.__ResetDependency__();
       });
     });
   });
