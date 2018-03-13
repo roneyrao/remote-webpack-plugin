@@ -1,5 +1,5 @@
 {
-  "name": "webpack-plugin-download",
+  "name": "download-webpack-plugin",
   "version": "1.0.0",
   "description": "A webpack plugin to load resource from internet instead of local file system to ensure the latest is compiled",
   "files": [
