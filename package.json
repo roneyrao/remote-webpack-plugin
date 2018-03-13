@@ -35,6 +35,7 @@
   "author": "Roney",
   "license": "MIT",
   "dependencies": {
+    "cacheable-request-adaptable": "^3.0.2",
     "ftp": "^0.3.10",
     "http-cache-semantics": "^3.8.1",
     "keyv": "^3.0.0",

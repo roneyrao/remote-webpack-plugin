@@ -76,4 +76,5 @@ DownloadWebpackPlugin.prototype.apply = function WebpackPluginRemoteApply(compil
   });
 };
 
-export default DownloadWebpackPlugin;
+// export default DownloadWebpackPlugin;
+module.exports = DownloadWebpackPlugin;
