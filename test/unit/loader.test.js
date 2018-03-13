@@ -1,4 +1,5 @@
 import url from 'url';
+import fs from 'fs';
 import sinon from 'sinon';
 import { expect } from 'chai';
 import https from 'https';
@@ -6,30 +7,51 @@ import https from 'https';
 import { pitch, __RewireAPI__ } from '../../src/loader';
 
 describe('loader.js', () => {
-  describe('getStreamKeyForStore', () => {
-    const getStreamKeyForStore = __RewireAPI__.__get__('getStreamKeyForStore');
-    it('method and url', () => {
-      const stream = { method: 'afafa', url: 'asfafaf' };
-      expect(getStreamKeyForStore(stream)).equal(`${stream.method}:${stream.url}`);
-    });
-  });
   describe('handleStreamError', () => {
     const handleStreamError = __RewireAPI__.__get__('handleStreamError');
-    it('with store', () => {
-      const get = sinon.stub().returnsArg(0);
-      const response = {
-        store: { get },
-        method: 'options',
-        url: 'http://dafsofas.faof/fafa9l.html',
+    it('with cache, with body, succeed', (done) => {
+      const res = { body: {} };
+      const ctx = {
+        cache: { get: sinon.stub().returns(Promise.resolve(res)) },
+        href: 'http://dafsofas.faof/fafa9l.html',
+        cacheKey: 'config.href',
       };
-      const callback = sinon.spy();
-      const key = `${response.method}:${response.url}`;
-      handleStreamError(response, null, callback);
+      const callback = sinon.stub().callsFake(() => {
+        sinon.assert.calledWithExactly(ctx.cache.get, ctx.cacheKey);
+        sinon.assert.calledWithExactly(callback, null, res.body);
+        done();
+      });
 
-      sinon.assert.calledWithExactly(get, key);
-      sinon.assert.calledWithExactly(callback, null, key);
+      handleStreamError(ctx, null, callback);
     });
-    it('without store, error passed', () => {
+    it('with cache, with body, fail', () => {
+      const err = {};
+      const ctx = {
+        cache: { get: sinon.stub().returns(Promise.reject(err)) },
+        href: 'http://dafsofas.faof/fafa9l.html',
+        cacheKey: 'config.href',
+      };
+      const callback = sinon.stub().callsFake(() => {
+        sinon.assert.calledWithExactly(ctx.cache.get, ctx.cacheKey);
+        sinon.assert.calledWithExactly(callback, err);
+      });
+      handleStreamError(ctx, null, callback);
+    });
+    it('with cache, without body', () => {
+      const res = {};
+      const ctx = {
+        cache: { get: sinon.stub().returns(Promise.resolve(res)) },
+        href: 'http://dafsofas.faof/fafa9l.html',
+        cacheKey: 'config.href',
+      };
+      const callback = sinon.stub().callsFake(() => {
+        sinon.assert.calledWithExactly(ctx.cache.get, ctx.cacheKey);
+        sinon.assert.calledWithExactly(callback, null, res);
+      });
+
+      handleStreamError(ctx, null, callback);
+    });
+    it('without cache, error passed', () => {
       const response = {};
       const callback = sinon.spy();
       const error = {};
@@ -37,13 +59,13 @@ describe('loader.js', () => {
 
       sinon.assert.calledWithExactly(callback, error);
     });
-    it('without store, no error passed', () => {
-      const response = { statusCode: 1234, url: 'http://dafsofas.faof/fafa9l.html' };
+    it('without cache, no error passed', () => {
+      const ctx = { statusCode: 1234, href: 'http://dafsofas.faof/fafa9l.html' };
       const callback = sinon.spy();
-      handleStreamError(response, null, callback);
+      handleStreamError(ctx, null, callback);
 
       sinon.assert.calledOnce(callback);
-      expect(callback.getCall(0).args[0].message).equal(`Fail to dowload: ${response.url} - ${response.statusCode}`);
+      expect(callback.getCall(0).args[0].message).equal(`Fail to dowload: ${ctx.href} - ${ctx.statusCode}`);
     });
   });
   describe('handleStream events', () => {
@@ -53,19 +75,17 @@ describe('loader.js', () => {
       return this;
     }
     const set = sinon.spy();
-    const response = { on, store: { set } };
+    const response = { on, cache: { set }, cacheKey: 'afadaf' };
     const handleStream = __RewireAPI__.__get__('handleStream');
-    const key = 'aafaa';
     const callback = sinon.spy();
 
     before(function () {
       __RewireAPI__.__set__({
         handleStreamError: sinon.spy(),
-        getStreamKeyForStore: sinon.stub().returns(key),
       });
       this.handleStreamError = __RewireAPI__.__get__('handleStreamError');
     });
-    after(function () {
+    after(() => {
       __RewireAPI__.__ResetDependency__();
     });
     beforeEach(function () {
@@ -82,7 +102,7 @@ describe('loader.js', () => {
 
       const combinedBuf = callback.getCall(0).args[1];
       expect(combinedBuf instanceof Buffer);
-      sinon.assert.calledWithExactly(set, key, combinedBuf);
+      sinon.assert.calledWithExactly(set, response.cacheKey, { body: combinedBuf });
       expect(combinedBuf.toString()).equal(data1.toString() + data2.toString());
     });
     it('data and end, no save', () => {
@@ -131,7 +151,7 @@ describe('loader.js', () => {
           handleStream: this.handleStream,
         });
       });
-      after(function () {
+      after(() => {
         __RewireAPI__.__ResetDependency__();
         https.request.restore();
       });
@@ -155,7 +175,7 @@ describe('loader.js', () => {
         const res = { statusCode: 404 };
         cb(res);
 
-        sinon.assert.calledWithExactly(this.handleStreamError, res, null, this.callback);
+        sinon.assert.calledWithExactly(this.handleStreamError, this.config, null, this.callback);
       });
 
       it('request is ended ', function () {
@@ -170,31 +190,81 @@ describe('loader.js', () => {
         expect(typeof this.handlerMap.error).equal('function');
         const err = {};
         this.handlerMap.error(err);
-        sinon.assert.calledWithExactly(this.callback, err);
+        sinon.assert.calledWithExactly(this.handleStreamError, this.config, null, this.callback);
       });
     });
     describe('with store', () => {
-      it('correct request settings ', () => {
-        const request = sinon.stub().returns({ on: sinon.spy() });
+      before(function () {
+        const handlerMap = {};
+        this.handlerMap = handlerMap;
+        function on(key, callback) {
+          handlerMap[key] = callback;
+          return this;
+        }
+        sinon.stub(https, 'request').returns({ on });
+        this.request = https.request;
         const inst = {
           cache: { opts: {} },
           createRequest() {
-            return request;
+            return https.request;
           },
         };
+        this.inst = inst;
         const CacheableRequest = sinon.stub().returns(inst);
-        __RewireAPI__.__set__('CacheableRequest', CacheableRequest);
+        this.CacheableRequest = CacheableRequest;
+        this.handleStream = sinon.spy();
+        this.handleStreamError = sinon.spy();
+        __RewireAPI__.__set__({
+          handleStreamError: this.handleStreamError,
+          handleStream: this.handleStream,
+          CacheableRequest,
+        });
         const config = { protocol: 'https:' };
+        this.config = config;
         const store = {
           namespace: 'afadaf',
         };
+        this.store = store;
         __RewireAPI__.__get__('loadHttp')(config, null, store);
-
-        sinon.assert.calledWithExactly(CacheableRequest, https.request, store);
-        expect(inst.CachePolicy).equal(__RewireAPI__.__get__('NewCachePolicy'));
-        expect(inst.cache.opts.namespace).equal(store.namespace);
-        sinon.assert.calledOnce(request);
+        this.cacheKey = 'afasfaf';
+        this.handlerMap.cacheKey(this.cacheKey);
+      });
+      after(() => {
         __RewireAPI__.__ResetDependency__();
+      });
+      it('correct request settings ', function () {
+        sinon.assert.calledWithExactly(
+          this.CacheableRequest,
+          https.request,
+          {
+            cacheAdapter: this.store,
+            policyConstructor: __RewireAPI__.__get__('NewCachePolicy'),
+            namespace: this.store.namespace,
+          },
+        );
+        sinon.assert.calledOnce(this.request);
+      });
+      it('cache set when 200', function () {
+        const cb = this.request.getCall(0).args[1];
+        expect(typeof cb).equal('function');
+        const res = { statusCode: 200 };
+        cb(res);
+
+        expect(res.cache).equal(this.inst.cache);
+        expect(res.cacheKey).equal(this.cacheKey);
+      });
+      it('cache set when 404', function () {
+        const cb = this.request.getCall(0).args[1];
+        const res = { statusCode: 404 };
+        cb(res);
+
+        expect(this.config.cache).equal(this.inst.cache);
+        expect(this.config.cacheKey).equal(this.cacheKey);
+      });
+      it('cache set when error', function () {
+        delete this.config.cache;
+        delete this.config.cacheKey;
+        this.handlerMap.error();
       });
     });
   });
@@ -215,22 +285,31 @@ describe('loader.js', () => {
 
     const handleStream = sinon.spy();
     const handleStreamError = sinon.spy();
-    const config = { path: 'abd:' };
+    const config = { href: 'abd:' };
     const callback = sinon.spy();
     const store = {};
-    before(function () {
+    const keyvInst = {};
+    const Keyv = sinon.stub().returns(keyvInst);
+    const ctx = {
+      cacheKey: config.href,
+      href: config.href,
+      cache: keyvInst,
+    };
+    before(() => {
       __RewireAPI__.__set__({
         Ftp,
         handleStreamError,
         handleStream,
+        Keyv,
       });
       __RewireAPI__.__get__('loadFtp')(config, callback, store);
     });
-    after(function () {
+    after(() => {
       __RewireAPI__.__ResetDependency__();
     });
 
     it('create ftp', () => {
+      sinon.assert.calledWithExactly(Keyv, { store, namespace: store.namespace });
       expect(typeof handlerMap.ready).equal('function');
       expect(typeof handlerMap.error).equal('function');
       sinon.assert.calledWithExactly(connect, config);
@@ -245,7 +324,7 @@ describe('loader.js', () => {
       handlerMap.error(err);
       sinon.assert.calledWithExactly(
         handleStreamError,
-        sinon.match({ method: 'ftp', url: config.path, store }),
+        sinon.match(ctx),
         err,
         callback,
       );
@@ -256,7 +335,7 @@ describe('loader.js', () => {
       getCallback(err);
       sinon.assert.calledWithExactly(
         handleStreamError,
-        sinon.match({ method: 'ftp', url: config.path, store }),
+        sinon.match(ctx),
         err,
         callback,
       );
@@ -290,7 +369,7 @@ describe('loader.js', () => {
       this.loadHttp = __RewireAPI__.__get__('loadHttp');
       this.loadFtp = __RewireAPI__.__get__('loadFtp');
     });
-    after(function () {
+    after(() => {
       __RewireAPI__.__ResetDependency__();
     });
     describe('general', () => {
@@ -303,6 +382,9 @@ describe('loader.js', () => {
             return callback;
           },
           query,
+          _compiler: {
+            inputFileSystem: {},
+          },
         };
         const cfg = { a: 1, b: 2 };
         const parsedUrl = url.parse(request);
@@ -318,6 +400,7 @@ describe('loader.js', () => {
           callback,
           sinon.match.instanceOf(KeyvFs),
         );
+        sinon.assert.calledWithExactly(KeyvFs, fs);
         expect(load.getCall(0).args[0]).not.equal(parsedUrl);
       }
       function withoutConfig(request, protocol, load) {
@@ -325,6 +408,9 @@ describe('loader.js', () => {
         const ctx = {
           async() {
             return callback;
+          },
+          _compiler: {
+            inputFileSystem: { readFile: {}, writeFile: {} },
           },
         };
         const parsedUrl = { protocol, c: 1, d: 2 };
@@ -335,7 +421,8 @@ describe('loader.js', () => {
         pitch.call(ctx, request);
         __RewireAPI__.__ResetDependency__();
 
-        sinon.assert.calledWith(load, parsedUrl, callback, sinon.match.instanceOf(KeyvFs));
+        sinon.assert.calledWithExactly(KeyvFs, ctx._compiler.inputFileSystem);
+        sinon.assert.calledWithExactly(load, parsedUrl, callback, sinon.match.instanceOf(KeyvFs));
       }
       it('unsupported', () => {
         const callback = sinon.spy();
@@ -370,13 +457,13 @@ describe('loader.js', () => {
     describe('allow cache', () => {
       const findConfig = sinon.stub();
       const storeInst = {};
-      before(function () {
+      before(() => {
         __RewireAPI__.__set__({
           KeyvFs: sinon.stub().returns(storeInst),
           findConfig,
         });
       });
-      after(function () {
+      after(() => {
         __RewireAPI__.__ResetDependency__();
       });
 
@@ -387,6 +474,9 @@ describe('loader.js', () => {
             query: { http: {}, cacheDir },
             async() {
               return callback;
+            },
+            _compiler: {
+              inputFileSystem: {},
             },
           };
           const cfg = { cache };

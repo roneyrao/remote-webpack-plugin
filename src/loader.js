@@ -46,6 +46,12 @@ function handleStream(stream, toSave, callback) {
   });
 }
 
+function setCache(ctx, cacheableRequest, cacheKey) {
+  if (cacheableRequest) {
+    ctx.cache = cacheableRequest.cache;
+    ctx.cacheKey = cacheKey;
+  }
+}
 function loadHttp(config, callback, store) {
   let cacheableRequest;
   let request;
@@ -64,15 +70,14 @@ function loadHttp(config, callback, store) {
     ({ request } = _http);
   }
 
-  config.cache = cacheableRequest.cache;
   let cacheKey;
   const incomeMsg = request(config, (stream) => {
     if (stream.statusCode === 200) {
-      stream.cache = cacheableRequest.cache;
-      stream.cacheKey = cacheKey;
+      setCache(stream, cacheableRequest, cacheKey);
       stream.href = config.href;
       handleStream(stream, false, callback);
     } else {
+      setCache(config, cacheableRequest, cacheKey);
       handleStreamError(config, null, callback);
     }
   });
@@ -83,13 +88,16 @@ function loadHttp(config, callback, store) {
     req.end();
   });
   incomeMsg.on('error', (err) => {
-    config.cache = cacheableRequest.cache; // take config as forged stream.
-    config.cacheKey = cacheKey;
+    setCache(config, cacheableRequest, cacheKey);
     handleStreamError(config, err, callback);
   });
 }
 
 function loadFtp(config, callback, store) {
+  store = new Keyv({
+    store,
+    namespace: store.namespace,
+  });
   function getCtx() {
     return {
       cacheKey: config.href,
@@ -177,14 +185,7 @@ function pitch(request) {
     }
     store = new KeyvFs(_fs);
     const namespace = typeof options.cacheDir === 'string' ? options.cacheDir : '__download_cache__';
-    if (load === loadFtp) {
-      store = new Keyv({
-        store,
-        namespace,
-      });
-    } else {
-      store.namespace = namespace;
-    }
+    store.namespace = namespace;
   }
 
   load(config, callback, store);

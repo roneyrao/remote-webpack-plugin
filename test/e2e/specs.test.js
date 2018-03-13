@@ -24,17 +24,17 @@ const serverOpts = {
 const imageSize = fs.statSync(path.join(__dirname, 'image.gif')).size;
 const defaultCacheDir = '__download_cache__';
 function checkImage(compiler) {
-  const _fs = compiler.outputFileSystem.readFileSync ? compiler.outputFileSystem : fs;
   const options = compiler.options.output;
   const outFile = path.join(options.path, options.filename);
   // eslint-disable-next-line no-eval
-  let imageFile = eval(_fs.readFileSync(outFile).toString());
+  let imageFile = eval(fs.readFileSync(outFile).toString());
 
   expect(typeof imageFile).equal('string');
   expect(imageFile.endsWith('.gif')).ok;
 
   imageFile = path.join(options.path, imageFile);
-  expect(_fs.readFileSync(imageFile).length).equal(imageSize);
+  expect(fs.readFileSync(imageFile).length).equal(imageSize);
+  return fs.remove(options.path);
 }
 function checkCacheExist(cacheDir) {
   return fs.stat(cacheDir)
@@ -42,6 +42,7 @@ function checkCacheExist(cacheDir) {
     .then((files) => {
       expect(files).ok;
       expect(files.length).equal(2);
+      return fs.remove(cacheDir);
     });
 }
 function createHttpSuite(serverOptsOther, entry) {
@@ -57,12 +58,10 @@ function createHttpSuite(serverOptsOther, entry) {
     });
 
     it('compile', (done) => {
-      const compiler = compile(entry);
-      compiler.run()
-        .then(() => {
-          checkImage(compiler);
-          checkCacheExist(defaultCacheDir).then(done, done);
-        }, done);
+      compile(entry)
+        .then(compiler => checkImage(compiler))
+        .then(() => checkCacheExist(defaultCacheDir))
+        .then(done, done);
     });
     it('config', function (done) {
       const { logger } = this.server;
@@ -84,43 +83,40 @@ function createHttpSuite(serverOptsOther, entry) {
               done(new Error(`directory can not be removed - ${cacheDir}`));
             },
             () => {
-              const compiler = compile(entry, compilerOpts);
-              compiler.run().then(() => {
-                checkImage(compiler);
-                sinon.assert.calledWith(logger.info, 'POST', '/dir1/dir2/image.gif');
-                checkCacheExist(cacheDir).then(done, done);
-              }, done);
+              compile(entry, compilerOpts)
+                .then(compiler => checkImage(compiler))
+                .then(() => {
+                  sinon.assert.calledWith(logger.info, 'POST', '/dir1/dir2/image.gif');
+                  return checkCacheExist(cacheDir);
+                })
+                .then(done, done);
             },
           );
         }, done);
     });
     it('offline', function (done) {
       const { server } = this;
-      const compiler = compile(entry);
-      compiler.run().then(() => {
-        checkImage(compiler);
+      compile(entry)
+        .then(compiler => checkImage(compiler))
+        .then(() => fs.stat(defaultCacheDir))
+        .then(() => fs.readdir(defaultCacheDir))
+        .then((files) => {
+          expect(files).ok;
+          expect(files.length).equal(2);
 
-        fs.stat(defaultCacheDir)
-          .then(() => fs.readdir(defaultCacheDir), done)
-          .then((files) => {
-            expect(files).ok;
-            expect(files.length).equal(2);
+          server.stop();
 
-            server.stop();
+          http.get('http://localhost:3000/')
+            .on('error', (err2) => {
+              expect(err2).ok;
+              expect(err2.code).equal('ECONNREFUSED');
 
-            http.get('http://localhost:3000/')
-              .on('error', (err2) => {
-                expect(err2).ok;
-                expect(err2.code).equal('ECONNREFUSED');
-
-                const compiler2 = compile(entry);
-                compiler2.run().then(() => {
-                  checkImage(compiler2);
-                  done();
-                }, done);
-              });
-          });
-      }, done);
+              compile(entry)
+                .then(compiler2 => checkImage(compiler2))
+                .then(() => fs.remove(defaultCacheDir))
+                .then(done, done);
+            });
+        }, done);
     });
   }
   return HttpSuite;
@@ -165,11 +161,10 @@ describe('ftp', function () {
     this.ftpServer && this.ftpServer.close();
   });
   it('compile', (done) => {
-    const compiler = compile(entry, compilerOpts);
-    compiler.run().then(() => {
-      checkImage(compiler);
-      checkCacheExist(defaultCacheDir).then(done, done);
-    }, done);
+    compile(entry, compilerOpts)
+      .then(compiler => checkImage(compiler), done)
+      .then(() => checkCacheExist(defaultCacheDir))
+      .then(done, done);
   });
   it('config', (done) => {
     const cacheDir = 'cacheFolder';
@@ -184,48 +179,43 @@ describe('ftp', function () {
             done(new Error(`directory can not be removed - ${cacheDir}`));
           },
           () => {
-            const compiler = compile(entry, compilerOptsNew);
-            compiler.run().then(() => {
-              checkImage(compiler);
-              checkCacheExist(cacheDir).then(done, done);
-            }, done);
+            compile(entry, compilerOptsNew)
+              .then(compiler => checkImage(compiler), done)
+              .then(() => checkCacheExist(cacheDir))
+              .then(done, done);
           },
         );
       }, done);
   });
   it('offline', function (done) {
-    const compiler = compile(entry, compilerOpts);
-    compiler.run().then(() => {
-      checkImage(compiler);
+    compile(entry, compilerOpts)
+      .then(compiler => checkImage(compiler), done)
+      .then(() => fs.stat(defaultCacheDir))
+      .then(() => fs.readdir(defaultCacheDir))
+      .then((files) => {
+        expect(files).ok;
+        expect(files.length).equal(2);
 
-      fs.stat(defaultCacheDir).then(() => {
-        fs.readdir(defaultCacheDir).then((files) => {
-          expect(files).ok;
-          expect(files.length).equal(2);
+        this.ftpServer.close();
+        delete this.ftpServer;
 
-          this.ftpServer.close();
-          delete this.ftpServer;
+        new Ftp()
+          .on('error', (err) => {
+            expect(err).ok;
+            expect(err.code).equal('ECONNREFUSED');
 
-          new Ftp()
-            .on('error', (err) => {
-              expect(err).ok;
-              expect(err.code).equal('ECONNREFUSED');
-
-              const compiler2 = compile(entry, compilerOpts);
-              compiler2.run().then(() => {
-                checkImage(compiler2);
-                done();
-              }, done);
-            })
-            .connect(Object.assign(
-              {
-                host: 'localhost',
-                port: '5000',
-              },
-              auth,
-            ));
-        });
-      }, done);
-    }, done);
+            compile(entry, compilerOpts)
+              .then(compiler2 => checkImage(compiler2), done)
+              .then(() => fs.remove(defaultCacheDir))
+              .then(done, done);
+          })
+          .connect(Object.assign(
+            {
+              host: 'localhost',
+              port: '5000',
+            },
+            auth,
+          ));
+      });
   });
 });
