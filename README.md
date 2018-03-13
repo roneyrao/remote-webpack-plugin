@@ -1,4 +1,4 @@
-# download-webpack-plugin
+# webpack-plugin-download
 
 [![NPM Version](http://img.shields.io/npm/v/download-webpack-plugin.svg?style=flat)](https://www.npmjs.org/package/download-webpack-plugin)
 [![Build Status](https://travis-ci.org/roneyrao/download-webpack-plugin.svg?branch=master)](https://travis-ci.org/roneyrao/download-webpack-plugin)
