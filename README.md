@@ -20,7 +20,7 @@ If you want to load script in browser at runtime, you may need this plugin: [web
 
 ```
 const path = require('path');
-const DownloadPlugin = require('remote-webpack-plugin');
+const RemotePlugin = require('remote-webpack-plugin');
 
 module.exports = {
   context: __dirname,
@@ -41,7 +41,7 @@ module.exports = {
         },
       ],
     },
-  plugins: [new DownloadPlugin(/*options*/)],
+  plugins: [new RemotePlugin(/*options*/)],
 };
 ```
 
