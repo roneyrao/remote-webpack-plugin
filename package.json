@@ -1,7 +1,7 @@
 {
-  "name": "download-webpack-plugin",
+  "name": "remote-webpack-plugin",
   "version": "1.0.0",
-  "description": "A webpack plugin to load resource from internet instead of local file system to ensure the latest is compiled",
+  "description": "A webpack plugin to load resource from internet instead of local file system to ensure the latest is bundled",
   "files": [
     "/dist"
   ],
@@ -17,18 +17,22 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/roneyrao/download-webpack-plugin"
+    "url": "git+https://github.com/roneyrao/remote-webpack-plugin"
   },
   "bugs": {
-    "url": "https://github.com/roneyrao/download-webpack-plugin"
+    "url": "https://github.com/roneyrao/remote-webpack-plugin"
   },
-  "homepage": "https://github.com/roneyrao/download-webpack-plugin",
+  "homepage": "https://github.com/roneyrao/remote-webpack-plugin",
   "keywords": [
     "webpack",
     "plugin",
+    "loader",
     "http",
     "https",
     "ftp",
+    "remote",
+    "internet",
+    "online",
     "download"
   ],
   "author": "Roney",
