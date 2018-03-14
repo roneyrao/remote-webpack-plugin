@@ -24,9 +24,8 @@
   },
   "homepage": "https://github.com/roneyrao/remote-webpack-plugin",
   "keywords": [
-    "webpack",
-    "plugin",
-    "loader",
+    "webpack-plugin",
+    "webpack-loader",
     "http",
     "https",
     "ftp",

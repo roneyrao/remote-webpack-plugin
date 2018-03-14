@@ -1,9 +1,9 @@
-# download-webpack-plugin
+# remote-webpack-plugin
 
-[![NPM Version](http://img.shields.io/npm/v/download-webpack-plugin.svg?style=flat)](https://www.npmjs.org/package/download-webpack-plugin)
-[![Build Status](https://travis-ci.org/roneyrao/download-webpack-plugin.svg?branch=master)](https://travis-ci.org/roneyrao/download-webpack-plugin)
-[![codecov](https://codecov.io/gh/roneyrao/download-webpack-plugin/branch/master/graph/badge.svg)](https://codecov.io/gh/roneyrao/download-webpack-plugin)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/roneyrao/download-webpack-plugin/master/LICENSE)
+[![NPM Version](http://img.shields.io/npm/v/remote-webpack-plugin.svg?style=flat)](https://www.npmjs.org/package/remote-webpack-plugin)
+[![Build Status](https://travis-ci.org/roneyrao/remote-webpack-plugin.svg?branch=master)](https://travis-ci.org/roneyrao/remote-webpack-plugin)
+[![codecov](https://codecov.io/gh/roneyrao/remote-webpack-plugin/branch/master/graph/badge.svg)](https://codecov.io/gh/roneyrao/remote-webpack-plugin)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/roneyrao/remote-webpack-plugin/master/LICENSE)
 
 A webpack plugin to fetch resource from internet, instead of local file system, to ensure the latest is bundled, e.g. to `require` an url starting with `http`/`https`/`ftp`: `require('http://abc.com/def.gh')`.
 
@@ -20,7 +20,7 @@ If you want to load script in browser at runtime, you may need this plugin: [web
 
 ```
 const path = require('path');
-const DownloadPlugin = require('download-webpack-plugin');
+const DownloadPlugin = require('remote-webpack-plugin');
 
 module.exports = {
   context: __dirname,
@@ -124,3 +124,7 @@ render(
   }
 }
 ```
+
+## License
+
+[MIT](LICENSE).
