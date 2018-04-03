@@ -1,7 +1,7 @@
 {
   "name": "remote-webpack-plugin",
-  "version": "1.0.1",
-  "description": "A webpack plugin to load resource from internet instead of local file system to ensure the latest is bundled",
+  "version": "1.0.2",
+  "description": "A webpack plugin to load dependency from internet instead of local file system to ensure the latest is bundled",
   "files": [
     "/dist"
   ],

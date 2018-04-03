@@ -5,7 +5,7 @@
 [![codecov](https://codecov.io/gh/roneyrao/remote-webpack-plugin/branch/master/graph/badge.svg)](https://codecov.io/gh/roneyrao/remote-webpack-plugin)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/roneyrao/remote-webpack-plugin/master/LICENSE)
 
-A webpack plugin to fetch resource from internet, instead of local file system, to ensure the latest is bundled, e.g. to `require` an url starting with `http`/`https`/`ftp`: `require('http://abc.com/def.gh')`.
+A webpack plugin to fetch dependency from internet, instead of local file system, to ensure the latest is bundled, e.g. to `require` an url starting with `http`/`https`/`ftp`: `require('http://abc.com/def.gh')`.
 
 If you want to load script in browser at runtime, you may need this plugin: [webpack-require-http](https://github.com/darkty2009/webpack-require-http).
 
